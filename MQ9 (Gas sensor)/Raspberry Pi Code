@@ -55,8 +55,8 @@ def update_gui():
     if co_levels:  # Check if the list is not empty
         co_level_label.config(text="CO Level: " + str(co_levels[-1]))
     
-    fan_status = "On" if GPIO.input(LED_PIN) == GPIO.HIGH else "Off"
-    fan_status_label.config(text="LED Status: " + fan_status)
+    LED_status = "On" if GPIO.input(LED_PIN) == GPIO.HIGH else "Off"
+    LED_status_label.config(text="LED Status: " + fan_status)
     
     root.after(1000, update_gui)
 
@@ -72,8 +72,8 @@ try:
     co_level_label = tk.Label(root, text="CO Level: 0", font=("Arial", 16))
     co_level_label.pack(pady=10)
 
-    fan_status_label = tk.Label(root, text="Fan Status: Off", font=("Arial", 16))
-    fan_status_label.pack(pady=10)
+    LED_status_label = tk.Label(root, text="Fan Status: Off", font=("Arial", 16))
+    LED_status_label.pack(pady=10)
 
     update_gui()
 
