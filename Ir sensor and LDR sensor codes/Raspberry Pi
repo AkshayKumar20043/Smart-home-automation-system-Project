@@ -1,0 +1,85 @@
+import RPi.GPIO as GPIO  # It imports RPi.GPIO library for controlling GPIO pins of Raspberry Pi 
+import paho.mqtt.client as mqtt  # It import the MQTT client library used for MQTT communication
+import tkinter as tk  # Importes the tkinter library for GUI
+from tkinter import Label, Button  # Imported this for specific elements from tkinter
+import time  # Import the time library for certion time events such as delays
+
+BUZZER_PIN = 18  # Initilized Buzzer pin number
+LED_PIN = 17  # Initialized LED pin number
+
+MQTT_BROKER = "mqtt-dashboard.com"  # It sets the MQTT broker address
+MQTT_IR_TOPIC = "object_detectionn"  # Defines the MQTT topic for IR sensor data
+MQTT_LDR_TOPIC = "my_light_wavee"  # Defines the MQTT topic for LDR (Light Dependent Resistor) data
+
+GPIO.setmode(GPIO.BCM)  # Sets the GPIO mode to use the BCM pin numbering
+GPIO.setup(BUZZER_PIN, GPIO.OUT)  
+GPIO.setup(LED_PIN, GPIO.OUT)  
+
+object_detected = False  # Initialized a variable to track object detection status
+light_level = 0  
+disable_ir_until = 0 
+
+def on_connect(client, userdata, flags, rc):
+    print("Connected to MQTT Broker with result code " + str(rc)) 
+    client.subscribe(MQTT_IR_TOPIC)  
+    client.subscribe(MQTT_LDR_TOPIC)  
+
+def on_message(client, userdata, msg):
+    global object_detected, light_level 
+    if msg.topic == MQTT_IR_TOPIC:
+        if disable_ir_until < time.time():
+            object_detected = msg.payload.decode() == "1" 
+            print("Object Detected: " + str(object_detected))
+    elif msg.topic == MQTT_LDR_TOPIC:
+        light_level = int(msg.payload)  
+        print("Received Light Level(from nano): " + str(light_level))
+
+def update_gui():
+    ir_label.config(text="No person is Detected" if object_detected else "Person is Detected")  
+    ldr_label.config(text="The sunlight is Bright" if light_level < 300 else "The sunlight is low (turning LED on)")
+    root.after(1000, update_gui) 
+
+def disable_ir_for_one_minute():
+    global disable_ir_until 
+    disable_ir_until = time.time() + 60  
+
+client = mqtt.Client()  # Creates an MQTT client instance
+client.on_connect = on_connect  # Sets the on_connect callback
+client.on_message = on_message  # Sets the on_message callback
+
+client.connect(MQTT_BROKER, 1883, 60)  # Connect to the MQTT broker
+
+try:
+    client.loop_start()  # Start the MQTT client loop
+
+    root = tk.Tk() 
+    root.title("Sensor Readings") 
+    ir_label = Label(root, text="Person is Detected", font=("Helvetica", 16)) 
+    ir_label.pack(pady=10)  
+
+    ldr_label = Label(root, text="the sunlight is low, turning LED on", font=("Helvetica", 16))  # Create a label for LDR data
+    ldr_label.pack(pady=10) 
+
+    disable_ir_button = Button(root, text="Disable IR for 1 minute", command=disable_ir_for_one_minute)  # Create a button to disable IR
+    disable_ir_button.pack(pady=10)  
+
+    update_gui()  
+
+    while True:  # Main loop
+        if object_detected and disable_ir_until < time.time():
+            GPIO.output(BUZZER_PIN, GPIO.LOW)  # Turn on Buzzer if object detected
+        else:
+            GPIO.output(BUZZER_PIN, GPIO.HIGH) 
+
+        if light_level < 300:
+            GPIO.output(LED_PIN, GPIO.LOW)  # Turn on LED if light level is low
+        else:
+            GPIO.output(LED_PIN, GPIO.HIGH)  
+
+        root.update_idletasks()  # Update the GUI
+        root.update()
+
+except KeyboardInterrupt:
+    GPIO.cleanup()  # Cleanup GPIO settings
+    client.loop_stop()  # Stop the MQTT client loop
+    root.destroy()  # Close the GUI window
