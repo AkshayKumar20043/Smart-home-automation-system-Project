@@ -6,7 +6,7 @@ import sys
 import tkinter as tk
 
 # GPIO pins
-FAN_PIN = 18
+LED_PIN = 18
 
 # MQTT settings
 MQTT_BROKER = "mqtt-dashboard.com"
@@ -14,7 +14,7 @@ MQTT_CO_TOPIC = "co_level"
 
 GPIO.setwarnings(False)  # Disable GPIO warnings
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(FAN_PIN, GPIO.OUT)
+GPIO.setup(LED_PIN, GPIO.OUT)
 
 co_levels = []
 average_co = 0
@@ -35,9 +35,9 @@ def on_message(client, userdata, msg):
         
         # Check CO level and control the fan
         if co_level > 500:
-            GPIO.output(FAN_PIN, GPIO.HIGH)
+            GPIO.output(LED_PIN, GPIO.HIGH)
         else:
-            GPIO.output(FAN_PIN, GPIO.LOW)
+            GPIO.output(LED_PIN, GPIO.LOW)
 
 client = mqtt.Client()
 client.on_connect = on_connect
@@ -55,7 +55,7 @@ def update_gui():
     if co_levels:  # Check if the list is not empty
         co_level_label.config(text="CO Level: " + str(co_levels[-1]))
     
-    fan_status = "On" if GPIO.input(FAN_PIN) == GPIO.HIGH else "Off"
+    fan_status = "On" if GPIO.input(LED_PIN) == GPIO.HIGH else "Off"
     fan_status_label.config(text="Fan Status: " + fan_status)
     
     root.after(1000, update_gui)
