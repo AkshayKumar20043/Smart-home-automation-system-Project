@@ -6,7 +6,7 @@ import sys
 import tkinter as tk
 
 # GPIO pins
-LED_PIN = 18
+LED_PIN = 27
 
 # MQTT settings
 MQTT_BROKER = "mqtt-dashboard.com"
