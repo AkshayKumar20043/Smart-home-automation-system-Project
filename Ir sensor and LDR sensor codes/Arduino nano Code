@@ -1,0 +1,67 @@
+#include <WiFiNINA.h>
+#include <PubSubClient.h>
+
+const char* ssid = "Akshay";             // Put your WiFi SSID
+const char* pass = "012345678";          // Put your WiFi password
+const char* broker = "mqtt-dashboard.com";  
+const char* clientId = "clientId-uVY8EnWa3V";  
+const char* irTopic = "my_object";       // Defines the MQTT topic for the IR sensor data
+const char* ldrTopic = "my_light";       // Defines the MQTT topic for the LDR data
+
+WiFiClient wifiClient;                  // Create a WiFi client object
+PubSubClient mqttClient(wifiClient);    // Create a MQTT client object
+
+int IRSensorPin = 5;                    // Initialized IR sensor
+int LDRPin = A0;                        // Initialized LDR sensor
+
+char objectDetectedStr[2];            
+char lightLevelStr[10];                 
+
+unsigned long lastMillis = 0;         
+const unsigned long timeout = 60000;    // Define a timeout period in milliseconds
+
+void setup() {
+  Serial.begin(9600);                   // Start the serial communication
+  delay(1000);
+  
+  WiFi.begin(ssid, pass);               // Connect to the WiFi network
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");  // Display connection status
+  }
+  
+  Serial.println("Connected to WiFi");  // WiFi connected successfully
+
+  mqttClient.setServer(broker, 1883);  
+  pinMode(IRSensorPin, INPUT);          // Set the IR sensor pin as an input
+}
+
+void loop() {
+  unsigned long currentMillis = millis();  // Get the current time
+
+  if (currentMillis - lastMillis > timeout) {
+    NVIC_SystemReset();  // If the timeout is reached, reset the system
+  }
+
+  int objectDetected = digitalRead(IRSensorPin);  // Read the state of the IR sensor
+  int lightLevel = analogRead(LDRPin);            // Read the analog value from the LDR
+
+  snprintf(objectDetectedStr, sizeof(objectDetectedStr), "%d", objectDetected);  // Convert the IR sensor data to a string
+  snprintf(lightLevelStr, sizeof(lightLevelStr), "%d", lightLevel);              // Convert the LDR data to a string
+
+  Serial.print("Object Detected: ");
+  Serial.println(objectDetectedStr);  
+
+  Serial.print("Light Level (detected by LDR): ");
+  Serial.println(lightLevelStr); 
+
+  if (mqttClient.connect(clientId)) {  // Connect to the MQTT broker
+    mqttClient.publish(irTopic, objectDetectedStr);  // Publish the IR sensor data
+    mqttClient.publish(ldrTopic, lightLevelStr);     // Publish the LDR data
+    mqttClient.disconnect(); 
+  }
+
+  lastMillis = currentMillis;  // Update the last data sending time
+
+  delay(1000);  
+}
