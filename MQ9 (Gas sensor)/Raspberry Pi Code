@@ -56,7 +56,7 @@ def update_gui():
         co_level_label.config(text="CO Level: " + str(co_levels[-1]))
     
     LED_status = "On" if GPIO.input(LED_PIN) == GPIO.HIGH else "Off"
-    LED_status_label.config(text="LED Status: " + fan_status)
+    LED_status_label.config(text="LED Status: " + LED_status)
     
     root.after(1000, update_gui)
 
